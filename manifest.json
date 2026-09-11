@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "DoomShame",
+  "version": "1.0",
+  "description": "A useless screen time tracker that roasts you.",
+  "permissions": ["storage", "tabs", "idle", "alarms", "unlimitedStorage"],
+  "options_page": "options.html",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
