@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>DoomShame - Rules Engine Settings</title>
+  <style>
+    :root { --bg: #050811; --card: #0d1322; --text: #f8fafc; --accent: #ff2a5f; --success: #10b981; --border: #1e293b; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 40px 20px; max-width: 800px; margin: 0 auto; box-sizing: border-box; }
+    h2 { text-align: center; font-size: 32px; font-weight: 900; margin-bottom: 8px; letter-spacing: -0.5px; text-shadow: 0 0 10px rgba(255,42,95,0.4); }
+    .subtitle { text-align: center; color: #64748b; margin-bottom: 32px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .card { background: var(--card); border: 1px solid var(--border); padding: 24px; margin-bottom: 20px; border-radius: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); transition: border-color 0.2s; }
+    .card:hover { border-color: #ff2a5f; box-shadow: 0 0 20px rgba(255,42,95,0.2); }
+    label { font-size: 11px; color: #94a3b8; font-weight: 800; text-transform: uppercase; display: block; margin-bottom: 6px; letter-spacing: 0.5px; }
+    input { background: #050811; color: var(--text); border: 1px solid var(--border); padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; font-size: 14px; font-weight: 600; }
+    input:focus { border-color: #ff2a5f; outline: none; }
+    .card-actions { grid-column: span 2; display: flex; gap: 12px; margin-top: 8px; }
+    .btn-primary { background: #3b82f6; color: white; border: none; width: 100%; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 12px; transition: opacity 0.2s; }
+    .btn-success { background: linear-gradient(135deg, #ff2a5f, #d91b48); color: white; border: none; width: 100%; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; transition: opacity 0.2s; box-shadow: 0 4px 15px rgba(255,42,95,0.3); }
+    .btn-secondary { background: #0d1322; color: #94a3b8; border: 1px solid #1e293b; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; width: 100%; margin-top: 12px; }
+    .btn-danger { background: #ff2a5f; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; flex: 1; }
+    .btn-test { background: #8b5cf6; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; flex: 1; }
+    .btn-preview { background: #0284c7; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; flex: 1; }
+    button:hover { opacity: 0.9; }
+    #toast { display: none; background: #10b981; color: white; padding: 14px 20px; border-radius: 10px; font-weight: bold; text-align: center; margin-bottom: 20px; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <h2>DoomShame Rules Engine</h2>
+  <div class="subtitle">Customize screen time thresholds, soundboard effects, meme overlays, and roasts.</div>
+  <div id="toast"></div>
+  <div id="triggerList"></div>
+  <button id="addTriggerBtn" class="btn-primary">+ Add New Meme Trigger</button>
+  <button id="saveBtn" class="btn-success">Save Configurations</button>
+  <button id="resetDefaultsBtn" class="btn-secondary">Reset to Default Rules</button>
+  <script src="options.js"></script>
+</body>
+</html>
