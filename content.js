@@ -17,17 +17,30 @@ if (!window.hasDoomShameListener) {
 function showRoastOverlay(rule) {
   if (!rule) return;
 
-  // Play roast sound
+  // Soundboard playback engine with interaction fallback
   if (rule.sound) {
     const soundVal = rule.sound.trim();
     const audioUrl = (soundVal.startsWith("http") || soundVal.startsWith("data:")) 
       ? soundVal 
       : chrome.runtime.getURL(`assets/${soundVal}`);
     const audio = new Audio(audioUrl);
-    audio.play().catch(err => console.log("DoomShame: Audio playback blocked or prevented:", err));
+    
+    audio.play().catch(err => {
+      console.log("DoomShame: Audio playback waiting for user interaction:", err);
+      // Fallback: Trigger audio playback on first mouse movement, key press, or click
+      const playOnInteract = () => {
+        audio.play().catch(e => console.log("Audio play retry err:", e));
+        document.removeEventListener("mousemove", playOnInteract);
+        document.removeEventListener("click", playOnInteract);
+        document.removeEventListener("keydown", playOnInteract);
+      };
+      document.addEventListener("mousemove", playOnInteract, { once: true });
+      document.addEventListener("click", playOnInteract, { once: true });
+      document.addEventListener("keydown", playOnInteract, { once: true });
+    });
   }
 
-  // Remove pre-existing overlay elements
+  // Remove existing overlay elements
   const existingOverlay = document.getElementById("doomshame-overlay");
   if (existingOverlay) existingOverlay.remove();
   const existingStyle = document.getElementById("doomshame-style");
@@ -60,11 +73,12 @@ function showRoastOverlay(rule) {
     ? imgVal 
     : chrome.runtime.getURL(`assets/${imgVal}`);
 
+  const fallbackUrl = chrome.runtime.getURL("assets/faaa.gif");
   const isVideo = imgVal.includes("data:video/") || /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(imgVal);
 
   const mediaHtml = isVideo 
     ? `<video src="${imgUrl}" autoplay loop muted playsinline style="width: 100%; max-height: 220px; object-fit: contain; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1e293b; background: #050811;"></video>`
-    : `<img src="${imgUrl}" style="width: 100%; max-height: 220px; object-fit: contain; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1e293b; background: #050811;" alt="Meme" />`;
+    : `<img src="${imgUrl}" style="width: 100%; max-height: 220px; object-fit: contain; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1e293b; background: #050811;" alt="Meme" onerror="this.onerror=null; this.src='${fallbackUrl}';" />`;
 
   overlay.innerHTML = `
     <div style="background: #0d1322; border: 2px solid #ff2a5f; padding: 32px 28px; border-radius: 20px; box-shadow: 0 0 40px rgba(255, 42, 95, 0.45); text-align: center; max-width: 500px; width: 100%; position: relative; overflow: hidden; box-sizing: border-box;">
