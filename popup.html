@@ -1,81 +1,244 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
+  <title>DoomShame Control Panel</title>
   <style>
-    body { width: 340px; padding: 20px; background: #050811; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; margin: 0; box-sizing: border-box; position: relative; min-height: 440px; }
-    .header { font-size: 20px; font-weight: 900; color: #ffffff; margin-bottom: 2px; letter-spacing: -0.5px; text-shadow: 0 0 8px rgba(255,42,95,0.4); }
-    .subtext { color: #64748b; font-size: 11px; margin-bottom: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
-    .time-display { font-size: 38px; font-weight: 900; color: #ff2a5f; background: #000000; border: 1px solid #1e293b; border-radius: 14px; padding: 14px 0; margin-bottom: 12px; box-shadow: 0 0 15px rgba(255,42,95,0.25), inset 0 2px 6px rgba(0,0,0,0.9); transition: all 0.3s; font-family: 'Courier New', monospace; letter-spacing: 2px; }
-    .btn-toggle { padding: 13px; width: 100%; border: none; border-radius: 10px; font-size: 15px; font-weight: 800; cursor: pointer; margin-bottom: 10px; transition: all 0.2s; color: white; box-shadow: 0 4px 15px rgba(255,42,95,0.35); text-transform: uppercase; letter-spacing: 0.5px; }
-    .tracking-on { background: linear-gradient(135deg, #ff2a5f, #d91b48); }
-    .tracking-off { background: linear-gradient(135deg, #10b981, #059669); }
-    .btn-secondary { background: #0d1322; color: #94a3b8; border: 1px solid #1e293b; padding: 10px 12px; font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; margin-bottom: 10px; width: 48%; display: inline-block; transition: all 0.2s; }
-    .btn-secondary:hover { background: #1e293b; color: white; border-color: #334155; }
-    .action-row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-    .demo-zone { border-top: 1px solid #1e293b; padding-top: 12px; }
-    button.demo-btn { background: #3b82f6; color: white; border: none; padding: 8px; width: 100%; border-radius: 8px; font-weight: 800; cursor: pointer; margin-bottom: 6px; transition: transform 0.1s; flex: 1; }
-    button.extreme { background: #ff2a5f; }
-    button:hover { opacity: 0.95; transform: translateY(-1px); }
-    button:active { transform: translateY(1px); }
-    .paused-timer { opacity: 0.35; filter: grayscale(100%); }
-    #statusNotice { color: #fbbf24; font-size: 11px; margin-top: 6px; line-height: 1.3; background: rgba(251, 191, 36, 0.1); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(251, 191, 36, 0.3); font-weight: 700; }
-
-    /* Inline Popup Roast Modal */
-    #popupRoastModal {
-      display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(5, 8, 17, 0.97); backdrop-filter: blur(12px);
-      z-index: 100; flex-direction: column; align-items: center; justify-content: center;
-      padding: 24px 18px; box-sizing: border-box; border-radius: 12px; animation: popIn 0.25s ease-out;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 350px;
+      padding: 20px;
+      background: #050811;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     }
-    @keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    .roast-badge { font-size: 10px; font-weight: 800; color: #ff2a5f; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px; background: rgba(255, 42, 95, 0.15); padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(255, 42, 95, 0.3); }
-    .roast-title { font-size: 18px; font-weight: 900; color: white; margin-bottom: 10px; text-transform: uppercase; text-shadow: 0 0 10px rgba(255,42,95,0.5); }
-    .roast-img { width: 100%; max-height: 125px; object-fit: contain; background: #050811; border-radius: 8px; border: 1px solid #1e293b; margin-bottom: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); }
-    .roast-quote-box { background: rgba(5, 8, 17, 0.8); border-left: 3px solid #ff2a5f; padding: 10px 12px; border-radius: 6px; margin-bottom: 14px; text-align: left; width: 100%; box-sizing: border-box; }
-    .roast-text { font-size: 12px; font-weight: 600; color: #f1f5f9; line-height: 1.5; word-wrap: break-word; }
-    .btn-dismiss { background: linear-gradient(135deg, #ff2a5f, #d91b48); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 800; width: 100%; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 15px rgba(255,42,95,0.4); }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .title-badge {
+      font-size: 10px;
+      font-weight: 800;
+      color: #ff2a5f;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      background: rgba(255, 42, 95, 0.12);
+      border: 1px solid rgba(255, 42, 95, 0.3);
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+    .icon-btn {
+      background: #0d1322;
+      border: 1px solid #1e293b;
+      color: #94a3b8;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .icon-btn:hover { color: #f8fafc; border-color: #ff2a5f; background: rgba(255,42,95,0.1); }
+    .timer-card {
+      background: #0d1322;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .timer-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, #ff2a5f, #7c3aed);
+    }
+    .timer-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #64748b;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+    .timer-display {
+      font-size: 38px;
+      font-weight: 900;
+      font-family: 'Courier New', Courier, monospace;
+      color: #ffffff;
+      letter-spacing: 2px;
+      text-shadow: 0 0 15px rgba(255,42,95,0.4);
+      margin-bottom: 8px;
+    }
+    .timer-display.paused-timer { color: #ef4444; text-shadow: 0 0 15px rgba(239,68,68,0.4); }
+    .status-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #10b981;
+      margin-bottom: 16px;
+    }
+    .btn-toggle {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+    }
+    .tracking-on { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); }
+    .tracking-on:hover { background: #ef4444; color: #ffffff; }
+    .tracking-off { background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; }
+    .tracking-off:hover { transform: translateY(-1px); }
+    
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .btn-action {
+      background: #0d1322;
+      border: 1px solid #1e293b;
+      color: #cbd5e1;
+      padding: 10px 4px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .btn-action:hover { background: #1e293b; color: #ffffff; border-color: #ff2a5f; }
+    
+    .section-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .btn-demo {
+      background: #0d1322;
+      border: 1px solid #1e293b;
+      color: #ff2a5f;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-demo:hover { background: rgba(255,42,95,0.15); border-color: #ff2a5f; }
+
+    #statusNotice {
+      display: none;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #10b981;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    /* Popup Ambush Modal */
+    .popup-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(5, 8, 17, 0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      text-align: center;
+    }
+    .popup-modal-card {
+      background: #0d1322;
+      border: 2px solid #ff2a5f;
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 300px;
+      width: 100%;
+      box-shadow: 0 0 30px rgba(255,42,95,0.4);
+    }
+    .popup-modal-title {
+      font-size: 14px; font-weight: 900; color: #ff2a5f; margin-bottom: 10px; text-transform: uppercase;
+    }
+    .popup-modal-text {
+      font-size: 12px; color: #f8fafc; margin-bottom: 14px; line-height: 1.5; font-weight: 600;
+    }
+    .btn-close-modal {
+      width: 100%; padding: 10px; font-size: 11px; font-weight: 800;
+      background: #ff2a5f; color: #ffffff; border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase;
+    }
   </style>
 </head>
 <body>
-  <div class="header">DoomShame</div>
-  <div class="subtext">Screen Time Inconvenience Engine</div>
-  <div class="time-display" id="timer">00:00:00</div>
-  <button id="toggleTracking" class="btn-toggle tracking-on">Pause Monitoring</button>
-  
-  <div class="action-row">
-    <button id="openOptions" class="btn-secondary">Rules Engine</button>
-    <button id="resetTimer" class="btn-secondary">Reset Timer</button>
+
+  <div class="header">
+    <div class="title-badge">DoomShame v2.0</div>
+    <button class="icon-btn" id="openOptions" title="Open Trigger Studio">⚙️</button>
   </div>
 
-  <div class="demo-zone">
-    <div class="subtext">Fast Testing & Judge Panel</div>
-    <div style="display: flex; gap: 6px; margin-bottom: 6px;">
-      <button id="add30Secs" class="btn-secondary" style="margin:0; width:100%; font-size:11px; background:#1e293b; color:#38bdf8;">+30s Fast-Forward</button>
-      <button id="set55Secs" class="btn-secondary" style="margin:0; width:100%; font-size:11px; background:#312e81; color:#a5b4fc;">Set 55s (Roast in 5s)</button>
-    </div>
-    <div style="display: flex; gap: 6px; margin-bottom: 6px;">
-      <button id="demoTrigger1h" class="demo-btn" style="margin-bottom:0; font-size:11px;">Trigger 1m Roast</button>
-      <button id="demoTrigger2h" class="demo-btn" style="margin-bottom:0; font-size:11px; background:#eab308;">Trigger 2m Roast</button>
-    </div>
-    <div style="display: flex; gap: 6px;">
-      <button id="demoTrigger1" class="demo-btn" style="margin-bottom:0; font-size:11px;">Trigger 6h 7m</button>
-      <button id="demoTrigger2" class="demo-btn extreme" style="margin-bottom:0; font-size:11px;">Trigger 8h FATAL</button>
-    </div>
-    <div id="statusNotice"></div>
+  <div id="statusNotice"></div>
+
+  <div class="timer-card">
+    <div class="timer-label">Active Screen Time</div>
+    <div class="timer-display" id="timer">00:00:00</div>
+    <div class="status-badge" id="statusBadge">● MONITORING ACTIVE</div>
+    <button id="toggleTracking" class="btn-toggle tracking-on">Pause Monitoring</button>
   </div>
 
-  <!-- Inline Popup Roast Modal -->
-  <div id="popupRoastModal">
-    <div class="roast-badge">COWARD AMBUSH</div>
-    <div class="roast-title" id="popupRoastTitle">FAAAA!</div>
-    <div id="popupMediaContainer" style="width: 100%;">
-      <img id="popupRoastImg" class="roast-img" src="assets/faaa.gif" alt="Meme" />
+  <div class="section-title">Fast Controls</div>
+  <div class="quick-actions">
+    <button class="btn-action" id="set55Secs">⏱️ Set 55s</button>
+    <button class="btn-action" id="add30Secs">⏩ +30s</button>
+    <button class="btn-action" id="resetTimer">🔄 Reset</button>
+  </div>
+
+  <div class="section-title">Instant Demo Triggers</div>
+  <div class="demo-grid">
+    <button class="btn-demo" id="demoTrigger1h">⚡ 1 Min Roast</button>
+    <button class="btn-demo" id="demoTrigger2h">⚡ 2 Min Roast</button>
+    <button class="btn-demo" id="demoTrigger1">⚡ 6h7m Roast</button>
+    <button class="btn-demo" id="demoTrigger2">⚡ 8h Roast</button>
+  </div>
+
+  <!-- Coward Ambush Popup Modal -->
+  <div class="popup-modal" id="popupRoastModal">
+    <div class="popup-modal-card">
+      <div class="popup-modal-title" id="popupRoastTitle">COWARD AMBUSH!</div>
+      <div id="popupMediaContainer"></div>
+      <div class="popup-modal-text" id="popupRoastText">"PAUSED ALREADY?!"</div>
+      <button class="btn-close-modal" id="closePopupRoast">Dismiss</button>
     </div>
-    <div class="roast-quote-box">
-      <div class="roast-text" id="popupRoastText">"You paused monitoring?!"</div>
-    </div>
-    <button class="btn-dismiss" id="closePopupRoast">I Will Touch Grass</button>
   </div>
 
   <script src="popup.js"></script>
