@@ -1,5 +1,12 @@
 let timerInterval = null;
 
+const DEFAULT_RULES = [
+  { id: "rule_1h", hours: 1, minutes: 0, sound: "1h.mp3", image: "1h.gif", roast: "1 HOUR ON CHROME! You promised yourself 'just 5 minutes'. Look at you now!" },
+  { id: "rule_2h", hours: 2, minutes: 0, sound: "2h.mp3", image: "2h.gif", roast: "2 HOURS DETECTED! That's a whole movie length of pure unadulterated procrastination!" },
+  { id: "rule_6h7m", hours: 6, minutes: 7, sound: "67.mp3", image: "67.gif", roast: "6h 7m. Peak brainrot achieved. Bro is studying the blade." },
+  { id: "rule_8h", hours: 8, minutes: 0, sound: "faaa.mp3", image: "faaa.gif", roast: "FAAAA! 8 Hours! Your chair misses you! EMOTIONAL DAMAGE!" }
+];
+
 const PAUSE_INSULTS = [
   (mins) => `FAAAA! You paused screen time monitoring after only ${mins} minute(s)?! You have the attention span of a goldfish!`,
   (mins) => `PAUSED ALREADY?! Bro couldn't survive ${mins} minutes without digital stimulation. Go touch actual chlorophyll!`,
@@ -60,7 +67,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (resetBtn) {
     resetBtn.addEventListener("click", async () => {
       if (confirm("Reset active screen time counter back to zero?")) {
-        await chrome.storage.local.set({ totalSeconds: 0, firedTriggers: [] });
+        await chrome.storage.local.set({ 
+          totalSeconds: 0, 
+          firedTriggers: [], 
+          lastTickTime: Date.now() 
+        });
         await refreshTimerUI();
         showNotice("Timer reset to 00:00:00");
       }
@@ -78,7 +89,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function refreshTimerUI() {
-  const data = await chrome.storage.local.get(["totalSeconds", "isTracking"]);
+  const data = await chrome.storage.local.get(["totalSeconds", "isTracking", "customRules", "firedTriggers"]);
   const secs = data.totalSeconds || 0;
   const hours = Math.floor(secs / 3600);
   const mins = Math.floor((secs % 3600) / 60);
@@ -86,6 +97,33 @@ async function refreshTimerUI() {
   
   const formatted = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(displaySecs).padStart(2, '0')}`;
   document.getElementById("timer").textContent = formatted;
+
+  // Calculate and display next upcoming roast trigger status
+  const rules = (data.customRules && data.customRules.length > 0) ? data.customRules : DEFAULT_RULES;
+  const fired = data.firedTriggers || [];
+  const sortedRules = [...rules].sort((a, b) => (a.hours * 3600 + a.minutes * 60) - (b.hours * 3600 + b.minutes * 60));
+
+  const nextRule = sortedRules.find((r, index) => {
+    const ruleKey = r.id || `rule_${r.hours}h_${r.minutes}m_${index}`;
+    return !fired.includes(ruleKey);
+  });
+
+  const notice = document.getElementById("statusNotice");
+  if (notice) {
+    if (nextRule) {
+      const targetSecs = (nextRule.hours * 3600) + (nextRule.minutes * 60);
+      const remainingSecs = Math.max(0, targetSecs - secs);
+      const remMins = Math.floor(remainingSecs / 60);
+      const remSecs = remainingSecs % 60;
+      const remText = remMins > 0 ? `${remMins}m ${remSecs}s` : `${remSecs}s`;
+      const targetFormatted = `${String(nextRule.hours).padStart(2, '0')}:${String(nextRule.minutes).padStart(2, '0')}`;
+      notice.textContent = `NEXT ROAST IN: ${remText} (Target: ${targetFormatted})`;
+      notice.style.display = "block";
+    } else {
+      notice.textContent = "ALL ROAST TRIGGERS COMPLETED!";
+      notice.style.display = "block";
+    }
+  }
 
   const isTracking = data.isTracking !== false; 
   updateToggleUI(isTracking);
@@ -96,7 +134,7 @@ document.getElementById("toggleTracking").addEventListener("click", async () => 
   const data = await chrome.storage.local.get(["isTracking", "totalSeconds"]);
   const newState = data.isTracking === false ? true : false;
   
-  await chrome.storage.local.set({ isTracking: newState });
+  await chrome.storage.local.set({ isTracking: newState, lastTickTime: Date.now() });
   updateToggleUI(newState);
 
   // IF USER JUST PAUSED (newState is false): AMBUSH WITH RANDOM MEME ROAST & AMBUSH AUDIO!
@@ -138,27 +176,40 @@ function updateToggleUI(isTracking) {
   }
 }
 
-function fireDemoRoast(rule) {
+async function fireDemoRoast(rule) {
   // Always attempt popup audio playback as backup
   playPopupAudio(rule.sound);
 
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const tab = tabs[0];
-    if (!tab || !tab.id) return;
+  const focusedTabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  let tab = focusedTabs && focusedTabs[0];
 
-    if (!isMessageableTab(tab.url)) {
-      showPopupRoastModal(rule);
-      return;
-    }
+  if (!tab || !isMessageableTab(tab.url)) {
+    const allActive = await chrome.tabs.query({ active: true });
+    tab = allActive.find(t => isMessageableTab(t.url));
+  }
 
-    chrome.tabs.sendMessage(tab.id, { type: "EXECUTE_ROAST", payload: rule }, (res) => {
+  if (!tab || !isMessageableTab(tab.url)) {
+    const allTabs = await chrome.tabs.query({});
+    tab = allTabs.find(t => isMessageableTab(t.url));
+  }
+
+  if (tab && tab.id && isMessageableTab(tab.url)) {
+    chrome.tabs.sendMessage(tab.id, { type: "EXECUTE_ROAST", payload: rule }, async (res) => {
       if (chrome.runtime.lastError) {
-        showPopupRoastModal(rule);
-      } else {
-        hideNotice();
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ["content.js"]
+          });
+          chrome.tabs.sendMessage(tab.id, { type: "EXECUTE_ROAST", payload: rule });
+        } catch (e) {
+          showPopupRoastModal(rule);
+        }
       }
     });
-  });
+  } else {
+    showPopupRoastModal(rule);
+  }
 }
 
 function playPopupAudio(soundFile) {
@@ -172,6 +223,14 @@ function playPopupAudio(soundFile) {
   } catch (e) {
     console.log("Audio play error in popup:", e);
   }
+}
+
+function getMediaUrl(mediaVal) {
+  if (!mediaVal) return chrome.runtime.getURL("assets/faaa.gif");
+  let val = mediaVal.trim();
+  return (val.startsWith("data:") || val.startsWith("http")) 
+    ? val 
+    : chrome.runtime.getURL(`assets/${val}`);
 }
 
 function showPopupRoastModal(rule) {
@@ -202,9 +261,7 @@ function updatePopupMedia(mediaVal) {
   const container = document.getElementById("popupMediaContainer");
   if (!container) return;
 
-  const mediaUrl = (mediaVal?.startsWith("data:") || mediaVal?.startsWith("http")) 
-    ? mediaVal 
-    : chrome.runtime.getURL(`assets/${mediaVal || 'faaa.gif'}`);
+  const mediaUrl = getMediaUrl(mediaVal);
 
   const isVideo = mediaVal?.includes("data:video/") || 
                   /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(mediaVal || '');
@@ -235,13 +292,6 @@ function showNotice(msg) {
   }
 }
 
-function hideNotice() {
-  const notice = document.getElementById("statusNotice");
-  if (notice) {
-    notice.style.display = "none";
-  }
-}
-
 // DEMO TRIGGER BUTTON LISTENERS
 const trigger1hBtn = document.getElementById("demoTrigger1h");
 if (trigger1hBtn) {
@@ -259,12 +309,18 @@ if (trigger2hBtn) {
   });
 }
 
-document.getElementById("demoTrigger1").addEventListener("click", () => {
-  const roastText = ROAST_6H_INSULTS[Math.floor(Math.random() * ROAST_6H_INSULTS.length)];
-  fireDemoRoast({ sound: "67.mp3", image: "67.gif", roast: roastText });
-});
+const demo1Btn = document.getElementById("demoTrigger1");
+if (demo1Btn) {
+  demo1Btn.addEventListener("click", () => {
+    const roastText = ROAST_6H_INSULTS[Math.floor(Math.random() * ROAST_6H_INSULTS.length)];
+    fireDemoRoast({ sound: "67.mp3", image: "67.gif", roast: roastText });
+  });
+}
 
-document.getElementById("demoTrigger2").addEventListener("click", () => {
-  const roastText = ROAST_8H_INSULTS[Math.floor(Math.random() * ROAST_8H_INSULTS.length)];
-  fireDemoRoast({ sound: "faaa.mp3", image: "faaa.gif", roast: roastText });
-});
+const demo2Btn = document.getElementById("demoTrigger2");
+if (demo2Btn) {
+  demo2Btn.addEventListener("click", () => {
+    const roastText = ROAST_8H_INSULTS[Math.floor(Math.random() * ROAST_8H_INSULTS.length)];
+    fireDemoRoast({ sound: "faaa.mp3", image: "faaa.gif", roast: roastText });
+  });
+}
