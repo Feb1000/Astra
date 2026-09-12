@@ -1,26 +1,39 @@
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "EXECUTE_ROAST") {
-    showRoastOverlay(message.payload);
-  }
-});
+/**
+ * DOOMSHAME v2.0 - Content Script In-Page Roast Overlay Engine
+ */
+
+if (!window.hasDoomShameListener) {
+  window.hasDoomShameListener = true;
+
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === "EXECUTE_ROAST") {
+      showRoastOverlay(message.payload);
+      if (sendResponse) sendResponse({ status: "ACK" });
+    }
+    return true;
+  });
+}
 
 function showRoastOverlay(rule) {
-  // Play meme audio soundboard
+  if (!rule) return;
+
+  // Play roast sound
   if (rule.sound) {
     const soundVal = rule.sound.trim();
     const audioUrl = (soundVal.startsWith("http") || soundVal.startsWith("data:")) 
       ? soundVal 
       : chrome.runtime.getURL(`assets/${soundVal}`);
     const audio = new Audio(audioUrl);
-    audio.play().catch(err => console.log("DoomShame: Audio blocked by browser:", err));
+    audio.play().catch(err => console.log("DoomShame: Audio playback blocked or prevented:", err));
   }
 
-  // Remove existing overlay if present
+  // Remove pre-existing overlay elements
   const existingOverlay = document.getElementById("doomshame-overlay");
   if (existingOverlay) existingOverlay.remove();
   const existingStyle = document.getElementById("doomshame-style");
   if (existingStyle) existingStyle.remove();
 
+  // Create overlay container
   const overlay = document.createElement("div");
   overlay.id = "doomshame-overlay";
   overlay.style.cssText = `
@@ -35,11 +48,13 @@ function showRoastOverlay(rule) {
     box-sizing: border-box !important; margin: 0 !important; padding: 20px !important;
   `;
 
+  // Inject animation keyframes
   const style = document.createElement('style');
   style.id = "doomshame-style";
   style.innerHTML = `@keyframes doomshameFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }`;
   document.head.appendChild(style);
 
+  // Build media URL & HTML
   const imgVal = (rule.image || 'faaa.gif').trim();
   const imgUrl = (imgVal.startsWith("http") || imgVal.startsWith("data:")) 
     ? imgVal 
@@ -48,11 +63,11 @@ function showRoastOverlay(rule) {
   const isVideo = imgVal.includes("data:video/") || /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(imgVal);
 
   const mediaHtml = isVideo 
-    ? `<video src="${imgUrl}" autoplay loop muted playsinline style="width: 100%; max-height: 220px; object-fit: contain; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1e293b;"></video>`
-    : `<img src="${imgUrl}" style="width: 100%; max-height: 220px; object-fit: contain; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1e293b;" alt="Meme" />`;
+    ? `<video src="${imgUrl}" autoplay loop muted playsinline style="width: 100%; max-height: 220px; object-fit: contain; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1e293b; background: #050811;"></video>`
+    : `<img src="${imgUrl}" style="width: 100%; max-height: 220px; object-fit: contain; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1e293b; background: #050811;" alt="Meme" />`;
 
   overlay.innerHTML = `
-    <div style="background: #0d1322; border: 2px solid #ff2a5f; padding: 32px 28px; border-radius: 20px; box-shadow: 0 0 35px rgba(255, 42, 95, 0.4); text-align: center; max-width: 500px; width: 100%; position: relative; overflow: hidden; box-sizing: border-box;">
+    <div style="background: #0d1322; border: 2px solid #ff2a5f; padding: 32px 28px; border-radius: 20px; box-shadow: 0 0 40px rgba(255, 42, 95, 0.45); text-align: center; max-width: 500px; width: 100%; position: relative; overflow: hidden; box-sizing: border-box;">
       <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,42,95,0.15) 0%, transparent 60%); pointer-events: none;"></div>
       
       <div style="display: inline-block; padding: 5px 14px; background: rgba(255, 42, 95, 0.15); border: 1px solid rgba(255, 42, 95, 0.4); border-radius: 20px; font-size: 11px; font-weight: 800; color: #ff2a5f; letter-spacing: 1.5px; margin-bottom: 12px; text-transform: uppercase;">
@@ -83,7 +98,7 @@ function showRoastOverlay(rule) {
     btn.addEventListener("mouseout", () => btn.style.transform = "translateY(0)");
     btn.addEventListener("click", () => { 
       overlay.remove(); 
-      style.remove(); 
+      if (style) style.remove(); 
     });
   }
 }
