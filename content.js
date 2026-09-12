@@ -31,16 +31,19 @@ function showRoastOverlay(rule) {
   const existingStyle = document.getElementById("doomshame-style");
   if (existingStyle) existingStyle.remove();
 
-  // Attempt sound playback with Web Audio API fallback
+  // 1. Play sound effect
   playRoastSound(rule.sound);
+
+  // 2. Speak roast out loud with Chrome Voice TTS
+  speakRoast(rule.roast);
 
   const overlay = document.createElement("div");
   overlay.id = "doomshame-overlay";
   overlay.style.cssText = `
     position: fixed !important; top: 0 !important; left: 0 !important;
     width: 100vw !important; height: 100vh !important;
-    background: rgba(5, 8, 17, 0.95) !important;
-    backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
+    background: rgba(5, 8, 17, 0.96) !important;
+    backdrop-filter: blur(25px) !important; -webkit-backdrop-filter: blur(25px) !important;
     z-index: 2147483647 !important; display: flex !important; flex-direction: column !important;
     align-items: center !important; justify-content: center !important;
     color: #f8fafc !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
@@ -66,7 +69,7 @@ function showRoastOverlay(rule) {
   const isVideo = mediaVal.includes("data:video/") || 
                   /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(mediaVal);
 
-  const mediaStyle = "width: 100%; max-height: 220px; object-fit: contain; background: #050811; border-radius: 12px; margin-bottom: 20px; border: 1px solid #1e293b; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);";
+  const mediaStyle = "width: 100%; max-height: 220px; object-fit: contain; background: #050811; border-radius: 12px; margin-bottom: 20px; border: 2px solid #ff2a5f; box-shadow: 0 0 25px rgba(255,42,95,0.4), inset 0 2px 4px rgba(0,0,0,0.8);";
 
   const mediaTagHtml = isVideo
     ? `<video id="doomshameMedia" src="${mediaUrl}" autoplay loop muted playsinline style="${mediaStyle}"></video>`
@@ -76,24 +79,24 @@ function showRoastOverlay(rule) {
   const dismissText = DISMISS_BUTTON_TEXTS[Math.floor(Math.random() * DISMISS_BUTTON_TEXTS.length)];
 
   overlay.innerHTML = `
-    <div style="background: linear-gradient(145deg, #0b0f19, #121827); border: 2px solid #ff2a5f; padding: 32px 28px; border-radius: 20px; box-shadow: 0 0 35px rgba(255, 42, 95, 0.35); text-align: center; max-width: 500px; width: 100%; position: relative; overflow: hidden; box-sizing: border-box;">
-      <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,42,95,0.15) 0%, transparent 60%); pointer-events: none;"></div>
+    <div style="background: linear-gradient(145deg, #0b0f19, #121827); border: 2px solid #ff2a5f; padding: 32px 28px; border-radius: 20px; box-shadow: 0 0 45px rgba(255, 42, 95, 0.45); text-align: center; max-width: 520px; width: 100%; position: relative; overflow: hidden; box-sizing: border-box;">
+      <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,42,95,0.2) 0%, transparent 60%); pointer-events: none;"></div>
       
-      <div style="display: inline-block; padding: 5px 14px; background: rgba(255, 42, 95, 0.15); border: 1px solid rgba(255, 42, 95, 0.4); border-radius: 20px; font-size: 11px; font-weight: 800; color: #ff2a5f; letter-spacing: 1.5px; margin-bottom: 12px; text-transform: uppercase;">
-        DOOMSHAME INCONVENIENCE ENGINE
+      <div style="display: inline-block; padding: 6px 16px; background: rgba(255, 42, 95, 0.2); border: 1px solid rgba(255, 42, 95, 0.5); border-radius: 20px; font-size: 11px; font-weight: 900; color: #ff2a5f; letter-spacing: 2px; margin-bottom: 14px; text-transform: uppercase;">
+        DOOMSHAME SABOTAGE ENGINE
       </div>
       
-      <h1 style="font-size: 22px; color: #ffffff; margin: 0 0 16px 0; font-weight: 900; letter-spacing: -0.5px; text-transform: uppercase; text-shadow: 0 0 10px rgba(255,42,95,0.5);">
+      <h1 style="font-size: 24px; color: #ffffff; margin: 0 0 16px 0; font-weight: 900; letter-spacing: -0.5px; text-transform: uppercase; text-shadow: 0 0 12px rgba(255,42,95,0.6);">
         TIME'S UP FOR BROWSING
       </h1>
       
       ${mediaTagHtml}
       
-      <div style="background: rgba(5, 8, 17, 0.8); border-left: 4px solid #ff2a5f; padding: 16px 20px; border-radius: 8px; margin-bottom: 24px; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
-        <div style="font-size: 15px; font-weight: 600; color: #f8fafc; line-height: 1.6; word-wrap: break-word;">"${escapeHtml(rule.roast)}"</div>
+      <div style="background: rgba(5, 8, 17, 0.85); border-left: 4px solid #ff2a5f; padding: 18px 22px; border-radius: 10px; margin-bottom: 24px; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.6);">
+        <div style="font-size: 16px; font-weight: 700; color: #f8fafc; line-height: 1.6; word-wrap: break-word;">"${escapeHtml(rule.roast)}"</div>
       </div>
       
-      <button id="dismissRoastBtn" style="width: 100%; padding: 16px; font-size: 14px; font-weight: 800; background: linear-gradient(135deg, #ff2a5f, #d91b48); color: #ffffff; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 20px rgba(255,42,95,0.4); text-transform: uppercase; letter-spacing: 0.5px;">
+      <button id="dismissRoastBtn" style="width: 100%; padding: 16px; font-size: 15px; font-weight: 900; background: linear-gradient(135deg, #ff2a5f, #d91b48); color: #ffffff; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 25px rgba(255,42,95,0.5); text-transform: uppercase; letter-spacing: 0.5px;">
         ${dismissText}
       </button>
     </div>
@@ -101,22 +104,31 @@ function showRoastOverlay(rule) {
 
   document.body.appendChild(overlay);
 
-  const mediaEl = document.getElementById("doomshameMedia");
-  if (mediaEl) {
-    mediaEl.addEventListener("error", () => {
-      console.log("DoomShame media failed to load:", mediaUrl);
-    });
-  }
-
   const btn = document.getElementById("dismissRoastBtn");
   if (btn) {
     btn.addEventListener("mouseover", () => btn.style.transform = "translateY(-2px)");
     btn.addEventListener("mouseout", () => btn.style.transform = "translateY(0)");
     btn.addEventListener("click", () => { 
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       playSynthBeep(440, 0.1);
       overlay.remove(); 
       style.remove(); 
     });
+  }
+}
+
+function speakRoast(text) {
+  try {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.1;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  } catch (e) {
+    console.log("DoomShame TTS error:", e);
   }
 }
 
