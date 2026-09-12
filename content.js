@@ -13,8 +13,13 @@ const DISMISS_BUTTON_TEXTS = [
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "EXECUTE_ROAST") {
-    showRoastOverlay(message.payload);
-    sendResponse({ status: "ROAST_DISPLAYED" });
+    try {
+      showRoastOverlay(message.payload);
+      sendResponse({ status: "ROAST_DISPLAYED" });
+    } catch (err) {
+      console.log("DoomShame content script roast error:", err);
+      sendResponse({ status: "ROAST_ERROR", error: err.message });
+    }
   }
   return true;
 });
@@ -53,7 +58,7 @@ function showRoastOverlay(rule) {
   `;
   document.head.appendChild(style);
 
-  const mediaVal = rule.image || 'faaa.gif';
+  const mediaVal = (rule.image || 'faaa.gif').trim();
   const mediaUrl = (mediaVal.startsWith("data:") || mediaVal.startsWith("http")) 
     ? mediaVal 
     : chrome.runtime.getURL(`assets/${mediaVal}`);
@@ -99,7 +104,7 @@ function showRoastOverlay(rule) {
   const mediaEl = document.getElementById("doomshameMedia");
   if (mediaEl) {
     mediaEl.addEventListener("error", () => {
-      mediaEl.style.display = "none";
+      console.log("DoomShame media failed to load:", mediaUrl);
     });
   }
 
