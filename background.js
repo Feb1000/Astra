@@ -1,5 +1,5 @@
 /**
- * DOOMSHAME v2.0 - Background Service Worker & Core Inconvenience Engine
+ * DOOMSHAME v2.0 - Background Service Worker & Sequential Inconvenience Engine
  */
 
 const DEFAULT_RULES = [
@@ -22,11 +22,14 @@ async function ensureRulesMigrated() {
   } else {
     for (const defRule of DEFAULT_RULES) {
       if (!rules.some(r => r.id === defRule.id || (r.hours === defRule.hours && r.minutes === defRule.minutes))) {
-        rules.unshift(defRule);
+        rules.push(defRule);
         modified = true;
       }
     }
   }
+
+  // Ensure rules are stored in strict chronological order
+  rules.sort((a, b) => (a.hours * 3600 + a.minutes * 60) - (b.hours * 3600 + b.minutes * 60));
 
   if (modified) {
     await chrome.storage.local.set({ customRules: rules });
@@ -54,7 +57,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
-// Event listeners to synchronize timing across service worker wakeups
+// Event listeners to keep service worker active & timing synchronized
 chrome.tabs.onActivated.addListener(tickTime);
 chrome.tabs.onUpdated.addListener(tickTime);
 chrome.windows.onFocusChanged.addListener(tickTime);
@@ -87,7 +90,10 @@ async function tickTime() {
 
 async function checkTriggers(totalSeconds) {
   const { customRules, firedTriggers = [] } = await chrome.storage.local.get(["customRules", "firedTriggers"]);
-  const rules = customRules && customRules.length > 0 ? customRules : DEFAULT_RULES;
+  let rules = customRules && customRules.length > 0 ? customRules : DEFAULT_RULES;
+
+  // Always evaluate rules in strict chronological order by target time ascending
+  rules = [...rules].sort((a, b) => (a.hours * 3600 + a.minutes * 60) - (b.hours * 3600 + b.minutes * 60));
 
   for (let index = 0; index < rules.length; index++) {
     const rule = rules[index];
@@ -104,12 +110,13 @@ async function checkTriggers(totalSeconds) {
         delivered = await deliverRoastToTab(targetTab, rule);
       }
 
-      // Always create desktop notification alert
+      // Always create desktop notification alert with order & rule info
+      const timeStr = `${String(rule.hours).padStart(2, '0')}:${String(rule.minutes).padStart(2, '0')}:00`;
       try {
         chrome.notifications.create(ruleKey + "_" + Date.now(), {
           type: "basic",
           iconUrl: chrome.runtime.getURL("assets/faaa.gif"),
-          title: "🔥 DOOMSHAME INCONVENIENCE ENGINE 🔥",
+          title: `🔥 TRIGGER #${index + 1} REACHED (${timeStr}) 🔥`,
           message: rule.roast,
           priority: 2
         });
@@ -119,7 +126,7 @@ async function checkTriggers(totalSeconds) {
 
       firedTriggers.push(ruleKey);
       await chrome.storage.local.set({ firedTriggers });
-      break;
+      break; // Only fire one roast per tick in strict order!
     }
   }
 }
