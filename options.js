@@ -9,7 +9,20 @@ const defaultRules = [
 
 document.addEventListener("DOMContentLoaded", async () => {
   const data = await chrome.storage.local.get("customRules");
-  const rules = (data.customRules && data.customRules.length > 0) ? data.customRules : defaultRules;
+  let rules = (data.customRules && data.customRules.length > 0) ? [...data.customRules] : [...defaultRules];
+  
+  // Ensure default 1m and 2m rules are present in rules list
+  let updated = false;
+  for (const defRule of defaultRules) {
+    if (!rules.some(r => r.id === defRule.id || (r.hours === defRule.hours && r.minutes === defRule.minutes))) {
+      rules.unshift(defRule);
+      updated = true;
+    }
+  }
+  if (updated) {
+    await chrome.storage.local.set({ customRules: rules });
+  }
+
   renderRules(rules);
 
   document.getElementById("addTriggerBtn").addEventListener("click", () => {
