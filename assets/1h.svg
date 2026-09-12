@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 280" width="100%" height="100%">
+  <defs>
+    <linearGradient id="g1h" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="50%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <filter id="glow1h">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#3b82f6" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+  <rect width="100%" height="100%" rx="16" fill="url(#g1h)"/>
+  <rect x="10" y="10" width="480" height="260" rx="12" fill="none" stroke="#3b82f6" stroke-width="2" stroke-opacity="0.5"/>
+  
+  <g text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+    <rect x="150" y="30" width="200" height="28" rx="14" fill="#3b82f6" fill-opacity="0.25"/>
+    <text x="250" y="49" font-size="12" font-weight="800" fill="#93c5fd" letter-spacing="2">⏱️ 1 HOUR MILESTONE</text>
+    
+    <text x="250" y="135" font-size="75" font-weight="900" fill="#ffffff" filter="url(#glow1h)" letter-spacing="3">1 HOUR!</text>
+
+    <text x="250" y="190" font-size="18" font-weight="800" fill="#bfdbfe" letter-spacing="1">"JUST 5 MINUTES" THEY SAID</text>
+    <text x="250" y="225" font-size="14" font-weight="600" fill="#cbd5e1">60 minutes of your life gone forever.</text>
+  </g>
+</svg>
