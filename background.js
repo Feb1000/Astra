@@ -1,3 +1,7 @@
+/**
+ * DOOMSHAME v2.0 - Background Service Worker & Core Inconvenience Engine
+ */
+
 const DEFAULT_RULES = [
   { id: "rule_1m", hours: 0, minutes: 1, sound: "1h.mp3", image: "1h.gif", roast: "1 MINUTE ON CHROME! Look at you starting your doomscroll session!" },
   { id: "rule_2m", hours: 0, minutes: 2, sound: "2h.mp3", image: "2h.gif", roast: "2 MINUTES WASTED! Your focus span is officially cooked!" },
@@ -13,7 +17,7 @@ async function ensureRulesMigrated() {
   let modified = false;
 
   if (rules.length === 0) {
-    rules = DEFAULT_RULES;
+    rules = [...DEFAULT_RULES];
     modified = true;
   } else {
     for (const defRule of DEFAULT_RULES) {
@@ -37,6 +41,7 @@ async function ensureRulesMigrated() {
   await chrome.storage.local.set({ lastTickTime: Date.now() });
 }
 
+// Lifecycle listeners
 chrome.runtime.onInstalled.addListener(ensureRulesMigrated);
 chrome.runtime.onStartup.addListener(ensureRulesMigrated);
 ensureRulesMigrated();
@@ -49,7 +54,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
-// Event listeners to keep service worker active & timing synchronized
+// Event listeners to synchronize timing across service worker wakeups
 chrome.tabs.onActivated.addListener(tickTime);
 chrome.tabs.onUpdated.addListener(tickTime);
 chrome.windows.onFocusChanged.addListener(tickTime);
@@ -99,17 +104,17 @@ async function checkTriggers(totalSeconds) {
         delivered = await deliverRoastToTab(targetTab, rule);
       }
 
-      // Always show Chrome Desktop Notification as alert fallback
+      // Always create desktop notification alert
       try {
         chrome.notifications.create(ruleKey + "_" + Date.now(), {
           type: "basic",
           iconUrl: chrome.runtime.getURL("assets/faaa.gif"),
-          title: "🔥 DOOMSHAME OVERLAY TRIGGERED 🔥",
+          title: "🔥 DOOMSHAME INCONVENIENCE ENGINE 🔥",
           message: rule.roast,
           priority: 2
         });
       } catch (e) {
-        console.log("[DoomShame Engine] Notification warning:", e);
+        console.log("[DoomShame Engine] Notification dispatch warning:", e);
       }
 
       firedTriggers.push(ruleKey);
@@ -124,7 +129,7 @@ function deliverRoastToTab(tab, rule) {
     chrome.tabs.sendMessage(tab.id, { type: "EXECUTE_ROAST", payload: rule }, async (response) => {
       const err = chrome.runtime.lastError;
       if (err) {
-        console.log("[DoomShame Engine] sendMessage failed on tab", tab.id, err.message, "Injecting content.js...");
+        console.log("[DoomShame Engine] Tab message failed on tab", tab.id, err.message, "Injecting content.js...");
         try {
           await chrome.scripting.executeScript({
             target: { tabId: tab.id },
@@ -151,16 +156,13 @@ function deliverRoastToTab(tab, rule) {
 }
 
 async function findMessageableTab() {
-  // 1. Active tab in current window
   const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (activeTab && isMessageableTab(activeTab.url)) return activeTab;
 
-  // 2. Active tab across any open window
   const activeTabs = await chrome.tabs.query({ active: true });
   const messageableActive = activeTabs.find(t => isMessageableTab(t.url));
   if (messageableActive) return messageableActive;
 
-  // 3. Any open http/https tab
   const allTabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] });
   if (allTabs && allTabs.length > 0) return allTabs[0];
 
