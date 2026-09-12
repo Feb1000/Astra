@@ -7,12 +7,27 @@ const DEFAULT_RULES = [
   { id: "rule_8h", hours: 8, minutes: 0, sound: "faaa.mp3", image: "faaa.gif", roast: "FAAAA! 8 Hours! Your chair misses you! EMOTIONAL DAMAGE!" }
 ];
 
-// Initialize default storage on installation
-chrome.runtime.onInstalled.addListener(async () => {
+async function ensureRulesMigrated() {
   const data = await chrome.storage.local.get(["customRules", "isTracking", "totalSeconds"]);
-  if (!data.customRules || data.customRules.length === 0) {
-    await chrome.storage.local.set({ customRules: DEFAULT_RULES });
+  let rules = data.customRules || [];
+  let modified = false;
+
+  if (rules.length === 0) {
+    rules = DEFAULT_RULES;
+    modified = true;
+  } else {
+    for (const defRule of DEFAULT_RULES) {
+      if (!rules.some(r => r.id === defRule.id || (r.hours === defRule.hours && r.minutes === defRule.minutes))) {
+        rules.unshift(defRule);
+        modified = true;
+      }
+    }
   }
+
+  if (modified) {
+    await chrome.storage.local.set({ customRules: rules });
+  }
+
   if (data.isTracking === undefined) {
     await chrome.storage.local.set({ isTracking: true });
   }
@@ -20,9 +35,13 @@ chrome.runtime.onInstalled.addListener(async () => {
     await chrome.storage.local.set({ totalSeconds: 0 });
   }
   await chrome.storage.local.set({ lastTickTime: Date.now() });
-});
+}
 
-// Setup alarm heartbeat
+chrome.runtime.onInstalled.addListener(ensureRulesMigrated);
+chrome.runtime.onStartup.addListener(ensureRulesMigrated);
+ensureRulesMigrated();
+
+// Heartbeat alarm
 chrome.alarms.create("trackTime", { periodInMinutes: 1 / 60 });
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "trackTime") {
@@ -30,7 +49,15 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
-// 1-second interval timer
+// Event listeners to keep service worker active & timing synchronized
+chrome.tabs.onActivated.addListener(tickTime);
+chrome.tabs.onUpdated.addListener(tickTime);
+chrome.windows.onFocusChanged.addListener(tickTime);
+if (chrome.idle?.onStateChanged) {
+  chrome.idle.onStateChanged.addListener(tickTime);
+}
+
+// 1-second fallback interval
 setInterval(tickTime, 1000);
 
 async function tickTime() {
@@ -55,29 +82,72 @@ async function tickTime() {
 
 async function checkTriggers(totalSeconds) {
   const { customRules, firedTriggers = [] } = await chrome.storage.local.get(["customRules", "firedTriggers"]);
-  const rules = customRules || DEFAULT_RULES;
+  const rules = customRules && customRules.length > 0 ? customRules : DEFAULT_RULES;
 
   for (let index = 0; index < rules.length; index++) {
     const rule = rules[index];
     const triggerTargetSeconds = (rule.hours * 3600) + (rule.minutes * 60);
+    if (triggerTargetSeconds <= 0) continue;
+
     const ruleKey = rule.id || `rule_${rule.hours}h_${rule.minutes}m_${index}`;
 
     if (totalSeconds >= triggerTargetSeconds && !firedTriggers.includes(ruleKey)) {
       const targetTab = await findMessageableTab();
 
+      let delivered = false;
       if (targetTab?.id) {
-        // Mark as fired ONLY when we actually deliver it to a valid tab!
-        firedTriggers.push(ruleKey);
-        await chrome.storage.local.set({ firedTriggers });
-
-        chrome.tabs.sendMessage(targetTab.id, {
-          type: "EXECUTE_ROAST",
-          payload: rule
-        });
-        break;
+        delivered = await deliverRoastToTab(targetTab, rule);
       }
+
+      // Always show Chrome Desktop Notification as alert fallback
+      try {
+        chrome.notifications.create(ruleKey + "_" + Date.now(), {
+          type: "basic",
+          iconUrl: chrome.runtime.getURL("assets/faaa.gif"),
+          title: "🔥 DOOMSHAME OVERLAY TRIGGERED 🔥",
+          message: rule.roast,
+          priority: 2
+        });
+      } catch (e) {
+        console.log("[DoomShame Engine] Notification warning:", e);
+      }
+
+      firedTriggers.push(ruleKey);
+      await chrome.storage.local.set({ firedTriggers });
+      break;
     }
   }
+}
+
+function deliverRoastToTab(tab, rule) {
+  return new Promise((resolve) => {
+    chrome.tabs.sendMessage(tab.id, { type: "EXECUTE_ROAST", payload: rule }, async (response) => {
+      const err = chrome.runtime.lastError;
+      if (err) {
+        console.log("[DoomShame Engine] sendMessage failed on tab", tab.id, err.message, "Injecting content.js...");
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ["content.js"]
+          });
+          chrome.tabs.sendMessage(tab.id, { type: "EXECUTE_ROAST", payload: rule }, (res) => {
+            const retryErr = chrome.runtime.lastError;
+            if (retryErr) {
+              console.warn("[DoomShame Engine] Retry sendMessage failed:", retryErr.message);
+              resolve(false);
+            } else {
+              resolve(true);
+            }
+          });
+        } catch (scriptErr) {
+          console.warn("[DoomShame Engine] Script injection failed:", scriptErr.message);
+          resolve(false);
+        }
+      } else {
+        resolve(true);
+      }
+    });
+  });
 }
 
 async function findMessageableTab() {
