@@ -63,18 +63,38 @@ async function checkTriggers(totalSeconds) {
     const ruleKey = rule.id || `rule_${rule.hours}h_${rule.minutes}m_${index}`;
 
     if (totalSeconds >= triggerTargetSeconds && !firedTriggers.includes(ruleKey)) {
-      firedTriggers.push(ruleKey);
-      await chrome.storage.local.set({ firedTriggers });
+      const targetTab = await findMessageableTab();
 
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab?.id && isMessageableTab(tab.url)) {
-        chrome.tabs.sendMessage(tab.id, {
+      if (targetTab?.id) {
+        // Mark as fired ONLY when we actually deliver it to a valid tab!
+        firedTriggers.push(ruleKey);
+        await chrome.storage.local.set({ firedTriggers });
+
+        chrome.tabs.sendMessage(targetTab.id, {
           type: "EXECUTE_ROAST",
           payload: rule
         });
+        break;
       }
     }
   }
+}
+
+async function findMessageableTab() {
+  // 1. Active tab in current window
+  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (activeTab && isMessageableTab(activeTab.url)) return activeTab;
+
+  // 2. Active tab across any open window
+  const activeTabs = await chrome.tabs.query({ active: true });
+  const messageableActive = activeTabs.find(t => isMessageableTab(t.url));
+  if (messageableActive) return messageableActive;
+
+  // 3. Any open http/https tab
+  const allTabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] });
+  if (allTabs && allTabs.length > 0) return allTabs[0];
+
+  return null;
 }
 
 function isMessageableTab(url) {
