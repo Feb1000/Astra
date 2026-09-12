@@ -1,13 +1,8 @@
-let timerInterval = null;
+/**
+ * DOOMSHAME v2.0 - Popup Control Panel Script
+ */
 
-const DEFAULT_RULES = [
-  { id: "rule_1m", hours: 0, minutes: 1, sound: "1h.mp3", image: "1h.gif", roast: "1 HOUR ON CHROME! You promised yourself 'just 5 minutes'. Look at you now!" },
-  { id: "rule_2m", hours: 0, minutes: 2, sound: "2h.mp3", image: "2h.gif", roast: "2 HOURS DETECTED! That's a whole movie length of pure unadulterated procrastination!" },
-  { id: "rule_1h", hours: 1, minutes: 0, sound: "1h.mp3", image: "1h.gif", roast: "1 HOUR ON CHROME! You promised yourself 'just 5 minutes'. Look at you now!" },
-  { id: "rule_2h", hours: 2, minutes: 0, sound: "2h.mp3", image: "2h.gif", roast: "2 HOURS DETECTED! That's a whole movie length of pure unadulterated procrastination!" },
-  { id: "rule_6h7m", hours: 6, minutes: 7, sound: "67.mp3", image: "67.gif", roast: "6h 7m. Peak brainrot achieved. Bro is studying the blade." },
-  { id: "rule_8h", hours: 8, minutes: 0, sound: "faaa.mp3", image: "faaa.gif", roast: "FAAAA! 8 Hours! Your chair misses you! EMOTIONAL DAMAGE!" }
-];
+let timerInterval = null;
 
 const PAUSE_INSULTS = [
   (mins) => `FAAAA! You paused screen time monitoring after only ${mins} minute(s)?! You have the attention span of a goldfish!`,
@@ -18,7 +13,6 @@ const PAUSE_INSULTS = [
 
 document.addEventListener("DOMContentLoaded", async () => {
   await refreshTimerUI();
-
   timerInterval = setInterval(refreshTimerUI, 1000);
 
   const optionsBtn = document.getElementById("openOptions");
@@ -66,6 +60,41 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (modal) modal.style.display = "none";
     });
   }
+
+  // Toggle tracking button with Coward Ambush listener
+  const toggleBtn = document.getElementById("toggleTracking");
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", async () => {
+      const data = await chrome.storage.local.get(["isTracking", "totalSeconds"]);
+      const newState = data.isTracking === false ? true : false;
+      
+      await chrome.storage.local.set({ isTracking: newState, lastTickTime: Date.now() });
+      updateToggleUI(newState);
+
+      if (newState === false) {
+        const totalSeconds = data.totalSeconds || 0;
+        const mins = Math.floor(totalSeconds / 60);
+        const randomInsultFunc = PAUSE_INSULTS[Math.floor(Math.random() * PAUSE_INSULTS.length)];
+        const roastText = randomInsultFunc(mins);
+
+        const ambushRule = { sound: "ambush.mp3", image: "faaa.gif", roast: roastText };
+        fireDemoRoast(ambushRule);
+      }
+    });
+  }
+
+  // DEMO TRIGGER LISTENERS
+  const trigger1hBtn = document.getElementById("demoTrigger1h");
+  if (trigger1hBtn) trigger1hBtn.addEventListener("click", () => fireDemoRoast({ sound: "1h.mp3", image: "1h.gif", roast: "1 MINUTE ON CHROME! Look at you starting your doomscroll session!" }));
+
+  const trigger2hBtn = document.getElementById("demoTrigger2h");
+  if (trigger2hBtn) trigger2hBtn.addEventListener("click", () => fireDemoRoast({ sound: "2h.mp3", image: "2h.gif", roast: "2 MINUTES WASTED! Your focus span is officially cooked!" }));
+
+  const demo1Btn = document.getElementById("demoTrigger1");
+  if (demo1Btn) demo1Btn.addEventListener("click", () => fireDemoRoast({ sound: "67.mp3", image: "67.gif", roast: "6h 7m. Peak brainrot achieved. Bro is studying the blade." }));
+
+  const demo2Btn = document.getElementById("demoTrigger2");
+  if (demo2Btn) demo2Btn.addEventListener("click", () => fireDemoRoast({ sound: "faaa.mp3", image: "faaa.gif", roast: "FAAAA! 8 Hours! Your chair misses you! EMOTIONAL DAMAGE!" }));
 });
 
 async function refreshTimerUI() {
@@ -76,43 +105,36 @@ async function refreshTimerUI() {
   const displaySecs = secs % 60;
   
   const formatted = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(displaySecs).padStart(2, '0')}`;
-  document.getElementById("timer").textContent = formatted;
+  const timerElem = document.getElementById("timer");
+  if (timerElem) timerElem.textContent = formatted;
 
   const isTracking = data.isTracking !== false; 
   updateToggleUI(isTracking);
 }
 
-document.getElementById("toggleTracking").addEventListener("click", async () => {
-  const data = await chrome.storage.local.get(["isTracking", "totalSeconds"]);
-  const newState = data.isTracking === false ? true : false;
-  
-  await chrome.storage.local.set({ isTracking: newState, lastTickTime: Date.now() });
-  updateToggleUI(newState);
-
-  if (newState === false) {
-    const totalSeconds = data.totalSeconds || 0;
-    const mins = Math.floor(totalSeconds / 60);
-    const randomInsultFunc = PAUSE_INSULTS[Math.floor(Math.random() * PAUSE_INSULTS.length)];
-    const roastText = randomInsultFunc(mins);
-
-    const ambushRule = { sound: "ambush.mp3", image: "faaa.gif", roast: roastText };
-    playPopupAudio(ambushRule.sound);
-    showPopupRoastModal(ambushRule);
-    fireDemoRoast(ambushRule);
-  }
-});
-
 function updateToggleUI(isTracking) {
   const btn = document.getElementById("toggleTracking");
   const timer = document.getElementById("timer");
-  if (isTracking) {
-    btn.textContent = "Pause Monitoring";
-    btn.className = "btn-toggle tracking-on";
-    timer.classList.remove("paused-timer");
-  } else {
-    btn.textContent = "Resume Monitoring";
-    btn.className = "btn-toggle tracking-off";
-    timer.classList.add("paused-timer");
+  const statusBadge = document.getElementById("statusBadge");
+
+  if (btn && timer) {
+    if (isTracking) {
+      btn.textContent = "Pause Monitoring";
+      btn.className = "btn-toggle tracking-on";
+      timer.classList.remove("paused-timer");
+      if (statusBadge) {
+        statusBadge.textContent = "● MONITORING ACTIVE";
+        statusBadge.style.color = "#10b981";
+      }
+    } else {
+      btn.textContent = "Resume Monitoring";
+      btn.className = "btn-toggle tracking-off";
+      timer.classList.add("paused-timer");
+      if (statusBadge) {
+        statusBadge.textContent = "PAUSED (COWARD MODE)";
+        statusBadge.style.color = "#ef4444";
+      }
+    }
   }
 }
 
@@ -152,7 +174,7 @@ function playPopupAudio(soundFile) {
       ? soundFile 
       : chrome.runtime.getURL(`assets/${soundFile}`);
     const audio = new Audio(audioUrl);
-    audio.play().catch(err => console.log("Popup audio play blocked:", err));
+    audio.play().catch(err => console.log("Popup audio play prevented:", err));
   } catch (e) {
     console.log("Audio play error in popup:", e);
   }
@@ -202,18 +224,8 @@ function showNotice(msg) {
   if (notice) {
     notice.textContent = msg;
     notice.style.display = "block";
+    setTimeout(() => {
+      notice.style.display = "none";
+    }, 2500);
   }
 }
-
-// DEMO TRIGGER LISTENERS
-const trigger1hBtn = document.getElementById("demoTrigger1h");
-if (trigger1hBtn) trigger1hBtn.addEventListener("click", () => fireDemoRoast({ sound: "1h.mp3", image: "1h.gif", roast: "1 MINUTE ON CHROME! Look at you starting your doomscroll session!" }));
-
-const trigger2hBtn = document.getElementById("demoTrigger2h");
-if (trigger2hBtn) trigger2hBtn.addEventListener("click", () => fireDemoRoast({ sound: "2h.mp3", image: "2h.gif", roast: "2 MINUTES WASTED! Your focus span is officially cooked!" }));
-
-const demo1Btn = document.getElementById("demoTrigger1");
-if (demo1Btn) demo1Btn.addEventListener("click", () => fireDemoRoast({ sound: "67.mp3", image: "67.gif", roast: "6h 7m. Peak brainrot achieved. Bro is studying the blade." }));
-
-const demo2Btn = document.getElementById("demoTrigger2");
-if (demo2Btn) demo2Btn.addEventListener("click", () => fireDemoRoast({ sound: "faaa.mp3", image: "faaa.gif", roast: "FAAAA! 8 Hours! Your chair misses you! EMOTIONAL DAMAGE!" }));
