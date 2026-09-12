@@ -19,10 +19,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   let updated = false;
   for (const defRule of defaultRules) {
     if (!rules.some(r => r.id === defRule.id || (r.hours === defRule.hours && r.minutes === defRule.minutes))) {
-      rules.unshift(defRule);
+      rules.push(defRule);
       updated = true;
     }
   }
+
+  // Sort rules chronologically ascending
+  rules.sort((a, b) => (a.hours * 3600 + a.minutes * 60) - (b.hours * 3600 + b.minutes * 60));
+
   if (updated) {
     await chrome.storage.local.set({ customRules: rules });
   }
@@ -37,7 +41,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       sound: "faaa.mp3", 
       image: "faaa.gif", 
       roast: "New custom roast triggered!" 
-    }, true);
+    }, true, 1);
   });
   
   document.getElementById("saveBtn").addEventListener("click", async () => {
@@ -53,7 +57,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           firedTriggers: [], 
           lastTickTime: Date.now() 
         });
-        showToast("Screen time reset to 00:00:00! All triggers active.");
+        showToast("Screen time reset to 00:00:00! All triggers active in order.");
       }
     });
   }
@@ -87,12 +91,12 @@ async function saveCurrentRules() {
     roast: card.querySelector(".roast-input").value.trim()
   }));
 
-  // Sort rules by trigger time ascending
+  // Sort rules chronologically by trigger time ascending
   rules.sort((a, b) => (a.hours * 3600 + a.minutes * 60) - (b.hours * 3600 + b.minutes * 60));
 
   try {
     await chrome.storage.local.set({ customRules: rules, firedTriggers: [] });
-    showToast("Settings saved & triggers activated successfully!");
+    showToast("Settings saved! Triggers will fire in strict chronological order.");
     renderRules(rules);
   } catch (err) {
     showToast("Error saving rules: " + err.message);
@@ -100,29 +104,39 @@ async function saveCurrentRules() {
 }
 
 function renderRules(rules) {
+  // Always sort chronologically before rendering
+  rules.sort((a, b) => (a.hours * 3600 + a.minutes * 60) - (b.hours * 3600 + b.minutes * 60));
+
   const container = document.getElementById("triggerList");
   container.innerHTML = "";
-  rules.forEach(rule => addRuleCard(rule, false));
+  rules.forEach((rule, index) => addRuleCard(rule, false, index + 1));
 }
 
-function addRuleCard(rule = { hours: 0, minutes: 1, sound: "faaa.mp3", image: "faaa.gif", roast: "New custom roast triggered!" }, shouldScroll = false) {
+function addRuleCard(rule, shouldScroll = false, orderIndex = 1) {
   const container = document.getElementById("triggerList");
   const card = document.createElement("div");
   card.className = "card";
   const ruleId = rule.id || `rule_custom_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
   card.dataset.ruleId = ruleId;
 
+  const timeDisplay = `${String(rule.hours).padStart(2, '0')}:${String(rule.minutes).padStart(2, '0')}:00`;
+
   card.innerHTML = `
+    <div style="grid-column: span 4; display:flex; justify-content:space-between; align-items:center; background: rgba(255,42,95,0.08); padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255,42,95,0.2); margin-bottom: 6px;">
+      <span style="font-size: 11px; font-weight: 900; color: #ff2a5f; letter-spacing: 1px;">TRIGGER #${orderIndex} (EXECUTION TIME: ${timeDisplay})</span>
+      <span style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Sequence Step ${orderIndex}</span>
+    </div>
+
     <div><label>Hours</label><input type="number" min="0" max="23" value="${rule.hours}" class="h-input"></div>
     <div><label>Minutes</label><input type="number" min="0" max="59" value="${rule.minutes}" class="m-input"></div>
     <div>
       <label>Audio File / Custom Sound</label>
-      <input type="text" value="${escapeAttr(rule.sound)}" class="sound-input" placeholder="faaa.mp3 or Data URL">
+      <input type="text" value="${escapeAttr(rule.sound)}" class="sound-input" placeholder="1h.mp3 or Data URL">
       <input type="file" accept="audio/*" class="sound-file-picker" style="margin-top:6px; font-size:11px; color:#94a3b8; width:100%;">
     </div>
     <div>
       <label>Meme Image / GIF / Video</label>
-      <input type="text" value="${escapeAttr(rule.image)}" class="img-input" placeholder="faaa.gif or Data URL">
+      <input type="text" value="${escapeAttr(rule.image)}" class="img-input" placeholder="1h.gif or Data URL">
       <input type="file" accept="image/*,video/*" class="img-file-picker" style="margin-top:6px; font-size:11px; color:#94a3b8; width:100%;">
     </div>
     <div style="grid-column: span 2;">
@@ -134,7 +148,7 @@ function addRuleCard(rule = { hours: 0, minutes: 1, sound: "faaa.mp3", image: "f
     <div style="grid-column: span 2;"><label>Roast Text</label><input type="text" value="${escapeAttr(rule.roast)}" class="roast-input"></div>
     <div class="card-actions">
       <button class="btn-preview btn-secondary">Sound Preview</button>
-      <button class="btn-test btn-primary">Test Trigger</button>
+      <button class="btn-test btn-primary">Test Trigger Overlay</button>
       <button class="btn-danger">Delete Rule</button>
     </div>
   `;
