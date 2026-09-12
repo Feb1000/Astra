@@ -176,7 +176,7 @@ function showSystemNotificationFallback(rule) {
   try {
     chrome.notifications.create(`doomshame_roast_${Date.now()}`, {
       type: "basic",
-      iconUrl: "assets/faaa.gif",
+      iconUrl: chrome.runtime.getURL("assets/faaa.gif"),
       title: "DOOMSHAME: TIME'S UP FOR BROWSING!",
       message: rule.roast || "Your screen time limit has been reached! Touch grass immediately!",
       priority: 2
