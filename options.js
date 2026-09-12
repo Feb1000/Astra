@@ -1,3 +1,7 @@
+/**
+ * DOOMSHAME v2.0 - Custom Trigger Studio Engine
+ */
+
 const defaultRules = [
   { id: "rule_1m", hours: 0, minutes: 1, sound: "1h.mp3", image: "1h.gif", roast: "1 MINUTE ON CHROME! Look at you starting your doomscroll session!" },
   { id: "rule_2m", hours: 0, minutes: 2, sound: "2h.mp3", image: "2h.gif", roast: "2 MINUTES WASTED! Your focus span is officially cooked!" },
@@ -87,7 +91,6 @@ async function saveCurrentRules() {
   rules.sort((a, b) => (a.hours * 3600 + a.minutes * 60) - (b.hours * 3600 + b.minutes * 60));
 
   try {
-    // Reset firedTriggers on save so new/updated rules fire immediately!
     await chrome.storage.local.set({ customRules: rules, firedTriggers: [] });
     showToast("Settings saved & triggers activated successfully!");
     renderRules(rules);
@@ -130,8 +133,8 @@ function addRuleCard(rule = { hours: 0, minutes: 1, sound: "faaa.mp3", image: "f
     </div>
     <div style="grid-column: span 2;"><label>Roast Text</label><input type="text" value="${escapeAttr(rule.roast)}" class="roast-input"></div>
     <div class="card-actions">
-      <button class="btn-preview">Sound Preview</button>
-      <button class="btn-test">Test Trigger</button>
+      <button class="btn-preview btn-secondary">Sound Preview</button>
+      <button class="btn-test btn-primary">Test Trigger</button>
       <button class="btn-danger">Delete Rule</button>
     </div>
   `;
@@ -232,10 +235,8 @@ function renderPreviewHtml(mediaVal) {
 }
 
 async function testRuleInActiveTab(rule) {
-  // Always display the roast overlay DIRECTLY on the options page so user sees instant feedback
   showLocalRoastOverlay(rule);
 
-  // ALSO attempt sending roast overlay to active web tab if open
   const allActive = await chrome.tabs.query({ active: true });
   const validTab = allActive.find(t => isMessageableTab(t.url));
 
@@ -247,7 +248,11 @@ async function testRuleInActiveTab(rule) {
             target: { tabId: validTab.id },
             files: ["content.js"]
           });
-          chrome.tabs.sendMessage(validTab.id, { type: "EXECUTE_ROAST", payload: rule });
+          chrome.tabs.sendMessage(validTab.id, { type: "EXECUTE_ROAST", payload: rule }, () => {
+            if (chrome.runtime.lastError) {
+              console.log("[DoomShame] Test trigger last error handled cleanly");
+            }
+          });
         } catch (e) {
           // Local overlay already displayed
         }
@@ -284,8 +289,8 @@ function showLocalRoastOverlay(rule) {
   const isVideo = mediaVal.includes("data:video/") || /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(mediaVal);
 
   const mediaHtml = isVideo
-    ? `<video src="${mediaUrl}" autoplay loop muted playsinline style="width:100%; max-height:220px; object-fit:contain; border-radius:12px; margin-bottom:20px; border:1px solid #1e293b;"></video>`
-    : `<img src="${mediaUrl}" style="width:100%; max-height:220px; object-fit:contain; border-radius:12px; margin-bottom:20px; border:1px solid #1e293b;" />`;
+    ? `<video src="${mediaUrl}" autoplay loop muted playsinline style="width:100%; max-height:220px; object-fit:contain; border-radius:12px; margin-bottom:20px; border:1px solid #1e293b; background:#050811;"></video>`
+    : `<img src="${mediaUrl}" style="width:100%; max-height:220px; object-fit:contain; border-radius:12px; margin-bottom:20px; border:1px solid #1e293b; background:#050811;" />`;
 
   overlay.innerHTML = `
     <div style="background: linear-gradient(145deg, #0b0f19, #121827); border: 2px solid #ff2a5f; padding: 32px 28px; border-radius: 20px; box-shadow: 0 0 35px rgba(255, 42, 95, 0.35); text-align: center; max-width: 500px; width: 100%;">
@@ -316,11 +321,13 @@ function isMessageableTab(url) {
 
 function showToast(msg) {
   const toast = document.getElementById("toast");
-  toast.textContent = msg;
-  toast.style.display = "block";
-  setTimeout(() => {
-    toast.style.display = "none";
-  }, 3500);
+  if (toast) {
+    toast.textContent = msg;
+    toast.style.display = "block";
+    setTimeout(() => {
+      toast.style.display = "none";
+    }, 3500);
+  }
 }
 
 function escapeAttr(str) {
