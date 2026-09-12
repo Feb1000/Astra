@@ -122,7 +122,23 @@ function fireDemoRoast(rule) {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const tab = tabs[0];
     if (tab?.id && isMessageableTab(tab.url)) {
-      chrome.tabs.sendMessage(tab.id, { type: "EXECUTE_ROAST", payload: rule });
+      chrome.tabs.sendMessage(tab.id, { type: "EXECUTE_ROAST", payload: rule }, async (res) => {
+        if (chrome.runtime.lastError) {
+          try {
+            await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ["content.js"]
+            });
+            chrome.tabs.sendMessage(tab.id, { type: "EXECUTE_ROAST", payload: rule }, () => {
+              if (chrome.runtime.lastError) {
+                showPopupRoastModal(rule);
+              }
+            });
+          } catch (err) {
+            showPopupRoastModal(rule);
+          }
+        }
+      });
     } else {
       showPopupRoastModal(rule);
     }
