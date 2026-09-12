@@ -3,7 +3,7 @@
   "name": "DoomShame",
   "version": "1.0",
   "description": "A useless screen time tracker that roasts you.",
-  "permissions": ["storage", "tabs", "idle", "alarms", "unlimitedStorage"],
+  "permissions": ["storage", "tabs", "idle", "alarms", "unlimitedStorage", "scripting", "notifications"],
   "options_page": "options.html",
   "action": {
     "default_popup": "popup.html"
