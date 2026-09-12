@@ -1,6 +1,8 @@
 let timerInterval = null;
 
 const DEFAULT_RULES = [
+  { id: "rule_1m", hours: 0, minutes: 1, sound: "1h.mp3", image: "1h.gif", roast: "1 MINUTE ON CHROME! Look at you starting your doomscroll session!" },
+  { id: "rule_2m", hours: 0, minutes: 2, sound: "2h.mp3", image: "2h.gif", roast: "2 MINUTES WASTED! Your focus span is officially cooked!" },
   { id: "rule_1h", hours: 1, minutes: 0, sound: "1h.mp3", image: "1h.gif", roast: "1 HOUR ON CHROME! You promised yourself 'just 5 minutes'. Look at you now!" },
   { id: "rule_2h", hours: 2, minutes: 0, sound: "2h.mp3", image: "2h.gif", roast: "2 HOURS DETECTED! That's a whole movie length of pure unadulterated procrastination!" },
   { id: "rule_6h7m", hours: 6, minutes: 7, sound: "67.mp3", image: "67.gif", roast: "6h 7m. Peak brainrot achieved. Bro is studying the blade." },
@@ -19,17 +21,17 @@ const PAUSE_INSULTS = [
 ];
 
 const ROAST_1H_INSULTS = [
-  "1 HOUR ON CHROME! You promised yourself 'just 5 minutes'. Look at you now!",
-  "60 MINUTES WASTED! Congratulations on spending an entire hour staring at pixels!",
-  "1 HOUR MARK REACHED! Your to-do list is weeping in the corner!",
-  "1 HOUR OF DOOMSCROLLING! Your screen is warm and your productivity is cold!"
+  "1 MINUTE ON CHROME! You promised yourself 'just 5 minutes'. Look at you now!",
+  "60 SECONDS WASTED! Congratulations on spending an entire minute staring at pixels!",
+  "1 MINUTE MARK REACHED! Your to-do list is weeping in the corner!",
+  "1 MINUTE OF DOOMSCROLLING! Your screen is warm and your productivity is cold!"
 ];
 
 const ROAST_2H_INSULTS = [
-  "2 HOURS DETECTED! That's a whole movie length of pure unadulterated procrastination!",
-  "2 FULL HOURS! You could have learned a new language, but you chose brainrot!",
-  "120 MINUTES IN THE VOID! Your posture is degrading at record speeds!",
-  "2 HOURS OF SHAME! Step away from the computer before your brain completely turns to jelly!"
+  "2 MINUTES DETECTED! That's pure unadulterated procrastination!",
+  "2 FULL MINUTES! You could have learned a new word, but you chose brainrot!",
+  "120 SECONDS IN THE VOID! Your posture is degrading at record speeds!",
+  "2 MINUTES OF SHAME! Step away from the computer before your brain completely turns to jelly!"
 ];
 
 const ROAST_6H_INSULTS = [
@@ -75,6 +77,27 @@ document.addEventListener("DOMContentLoaded", async () => {
         await refreshTimerUI();
         showNotice("Timer reset to 00:00:00");
       }
+    });
+  }
+
+  // Fast testing buttons
+  const add30Btn = document.getElementById("add30Secs");
+  if (add30Btn) {
+    add30Btn.addEventListener("click", async () => {
+      const data = await chrome.storage.local.get(["totalSeconds"]);
+      const currentSecs = data.totalSeconds || 0;
+      await chrome.storage.local.set({ totalSeconds: currentSecs + 30, lastTickTime: Date.now() });
+      await refreshTimerUI();
+      showNotice("Fast-forwarded +30s!");
+    });
+  }
+
+  const set55Btn = document.getElementById("set55Secs");
+  if (set55Btn) {
+    set55Btn.addEventListener("click", async () => {
+      await chrome.storage.local.set({ totalSeconds: 55, lastTickTime: Date.now(), firedTriggers: [] });
+      await refreshTimerUI();
+      showNotice("Set to 55s! (1m roast in 5s!)");
     });
   }
 
